@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { YoutubeTranscript } from 'youtube-transcript'
-import { getGroq, MODEL } from '@/lib/groq'
+import { complete, aiConfigured } from '@/lib/ai'
 
 function extractId(url: string): string | null {
   const patterns = [
@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
     const { url } = await req.json()
     const id = extractId(url || '')
     if (!id) return NextResponse.json({ error: 'Некорректная ссылка YouTube' }, { status: 400 })
-    if (!process.env.GROQ_API_KEY) {
-      return NextResponse.json({ error: 'Сервис не настроен (нет GROQ_API_KEY)' }, { status: 503 })
+    if (!aiConfigured()) {
+      return NextResponse.json({ error: 'Сервис не настроен (нет AI-ключа)' }, { status: 503 })
     }
 
     let transcript
@@ -48,17 +48,8 @@ export async function POST(req: NextRequest) {
 }
 Пиши на языке видео. Делай 4-7 разделов.`
 
-    const completion = await getGroq().chat.completions.create({
-      model: MODEL,
-      temperature: 0.5,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: fullText },
-      ],
-    })
-
-    const data = JSON.parse(completion.choices[0]?.message?.content || '{}')
+    const raw = await complete({ system, user: fullText, json: true, temperature: 0.5 })
+    const data = JSON.parse(raw || '{}')
     return NextResponse.json({ ...data, videoId: id })
   } catch (err: any) {
     return NextResponse.json({ error: err.message || 'Ошибка' }, { status: 500 })
