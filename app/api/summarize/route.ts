@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { YoutubeTranscript } from 'youtube-transcript'
-import { groq, MODEL } from '@/lib/groq'
+import { getGroq, MODEL } from '@/lib/groq'
 
 function extractId(url: string): string | null {
   const patterns = [
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
 }
 Пиши на языке видео. Делай 4-7 разделов.`
 
-    const completion = await groq.chat.completions.create({
+    const completion = await getGroq().chat.completions.create({
       model: MODEL,
       temperature: 0.5,
       response_format: { type: 'json_object' },
